@@ -38,7 +38,7 @@ SetWorkingDir %A_ScriptDir%  ; Ensures a consistent starting directory.
 ;~ 1 : Activation 1 basic info: click_btn(2, "next")
 ;~ 2 : Activation 2 subscriber agreement: click_btn(2, "i agree")
 ;~ 3 : Activation 3 product key: Enter Key and click_btn(2, "next")
-;~ NOW 3 options and different flows (handled in steam_check_if_key_worked())
+;~ NOW 3 options and different flows (handled in steam_check_if_key_worked(key))
 ;~ 4a : Invalid Key or Too many attempts: click_btn(3, "cancel") ; check for link
 
 ;~ 4b : Already Owned: click_btn(2, "next") ; fall through case
@@ -66,7 +66,7 @@ steam_activate_key(key){ 					;method that takes a string variable (the key) and
 	;steam_click_next()
 	steam_click_iagree() ;or click_btn(2)
 	steam_wait_until_done()
-	if(steam_check_if_key_worked()){
+	if(steam_check_if_key_worked(key)){
 		applog("[sucessfull] key activated without problems !")
 		log_to_file(", 'success' => 'true'",false)
 	}else{
@@ -277,7 +277,7 @@ steam_close_all(){ 							;this will close the activation window (it should not 
 	return
 
 }
-steam_check_if_key_worked(){ 				;check if steam key worked
+steam_check_if_key_worked(key){ 				;check if steam key worked
 	applog("we need to check if the key worked")
 	if(steam_check_invalid_or_too_many_attempts()){ ;4a
 		applog("product code invalid or to many key tries")
@@ -300,6 +300,7 @@ steam_check_if_key_worked(){ 				;check if steam key worked
 		}else{ ;4b
 			applog("[duplicate product] we activated a duplicate product")
 			log_to_file(", 'new product' => 'false'",false)
+			log_duplicate_key(key . " -- ",false)
 			;this means there is no print window
 			click_btn(2,"> clicked next [activation]")
 			steam_check_if_on_install_screen()
@@ -332,6 +333,7 @@ steam_check_if_on_install_screen(){			;check if we are on the install screen
 	StringTrimLeft,gameTitle,WindowTitle,10
 	applog("adding game title to key log")
 	log_to_file(", 'game' => '" . gameTitle . "'",false)
+	log_duplicate_key(gameTitle,true)
 }
 is_print_window(){							;way to check if we have a new product or a duplicate
 	applog("waiting 5 seconds for the print window to pop up")
@@ -363,6 +365,15 @@ log_to_file(text,newline){					;log to the keys file.
 applog(text){								;log to the application file
 	FormatTime, Time,, dd/MM/yyyy HH:mm:ss tt
 	FileAppend, %Time% %text%`n, %A_WorkingDir%\app.log
+}
+log_duplicate_key(text,newline) {					;log to the duplicate keys file
+	if (newline) {
+		FileAppend,%text%`n, %A_WorkingDir%\duplicates.log
+		return
+	}else{
+		FileAppend,%text%, %A_WorkingDir%\duplicates.log
+		return
+	}
 }
 
 
